@@ -1,9 +1,10 @@
 import { Geist } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata = {
-  title: "Next.js App",
-  description: "A simple Next.js application",
+  title: "Curricullm - Chat with your CV collection",
+  description: "Transform static resumes into dynamic conversations with AI",
 };
 
 const geistSans = Geist({
@@ -17,9 +18,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>
-        {children}
+    <html lang="en" className="light" data-theme="light">
+      <body className={`${geistSans.className} bg-background text-foreground`}>
+        <ThemeProvider forcedTheme="light">
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
