@@ -3,7 +3,8 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { supabase } from "@/lib/supabase"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import type { Database } from "@/types/supabase"
 
 interface GoogleButtonProps {
   mode: "signin" | "signup"
@@ -17,6 +18,7 @@ export function GoogleButton({
   onError 
 }: GoogleButtonProps) {
   const router = useRouter()
+  const supabase = createClientComponentClient<Database>()
   const [isLoading, setIsLoading] = useState(false)
 
   const handleGoogleAuth = async () => {

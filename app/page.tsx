@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import type { Database } from "@/types/supabase"
 import { Button } from "@/components/ui/button"
-import { supabase } from "@/lib/supabase"
 
 export default function LandingPage() {
   const router = useRouter()
+  const supabase = createClientComponentClient<Database>()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -85,6 +87,7 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
             Bring Your CVs to Life!
           </h1>
           <p className="max-w-[700px] text-xl text-muted-foreground">Transform static resumes into <span className="text-primary font-medium">dynamic conversations</span> — discover hidden potential in your CV collection!</p>
+          
           <Button
             size="lg"
             className="px-8 py-6 text-lg font-medium rounded-full transition-all duration-300 hover:scale-105"
