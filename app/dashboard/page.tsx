@@ -16,6 +16,7 @@ type Message = {
   timestamp: Date;
 }
 
+// Keep the type but we won't use the backend functionality
 type UploadedFile = {
   id: string;
   name: string;
@@ -34,6 +35,7 @@ export default function DashboardPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Keep the state but we won't use backend functionality
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
@@ -85,50 +87,17 @@ export default function DashboardPage() {
         return
       }
       
+      if (data.session?.user?.id) {
+        setUserId(data.session.user.id)
+      }
+      
       setLoading(false)
     }
 
     checkUser()
   }, [router])
 
-  // Load user's files on initial render
-  useEffect(() => {
-    const fetchUserFiles = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (session?.user?.id) {
-        setUserId(session.user.id)
-        
-        // Fetch user's files from storage
-        const { data, error } = await supabase
-          .storage
-          .from('files')
-          .list(session.user.id, {
-            sortBy: { column: 'created_at', order: 'desc' }
-          })
-        
-        if (error) {
-          console.error('Error fetching files:', error)
-          return
-        }
-        
-        if (data) {
-          // Convert storage objects to our UploadedFile format
-          const files = data.map(file => ({
-            id: file.id || crypto.randomUUID(),
-            name: file.name,
-            size: file.metadata?.size || 0,
-            uploadedAt: new Date(file.created_at || Date.now()),
-            path: `${session.user.id}/${file.name}`
-          }))
-          
-          setUploadedFiles(files)
-        }
-      }
-    }
-    
-    fetchUserFiles()
-  }, [])
+  // Removed fetchUserFiles useEffect
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -161,67 +130,20 @@ export default function DashboardPage() {
     }, 1000)
   }
 
-  const handleFileSelect = async (files: FileList | null) => {
-    if (!files || files.length === 0 || !userId) return
+  // Simplified file handling functions that don't interact with backend
+  const handleFileSelect = (files: FileList | null) => {
+    if (!files || files.length === 0) return
     
-    const newFiles: UploadedFile[] = []
+    // Create UI-only file objects
+    const newFiles: UploadedFile[] = Array.from(files).map(file => ({
+      id: crypto.randomUUID(),
+      name: file.name,
+      size: file.size,
+      uploadedAt: new Date()
+    }))
     
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]
-      const id = crypto.randomUUID()
-      
-      // Create temporary file object with uploading status
-      const tempFile: UploadedFile = {
-        id,
-        name: file.name,
-        size: file.size,
-        uploadedAt: new Date(),
-        isUploading: true
-      }
-      
-      // Add to state immediately to show upload in progress
-      setUploadedFiles(prev => [...prev, tempFile])
-      
-      try {
-        // Upload to Supabase with userId as the first path segment
-        const filePath = `${userId}/${file.name}`
-        const { error } = await supabase
-          .storage
-          .from('files')
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: true
-          })
-        
-        if (error) throw error
-        
-        // Update file with path and remove uploading status
-        setUploadedFiles(prev => 
-          prev.map(f => 
-            f.id === id 
-              ? { ...f, path: filePath, isUploading: false } 
-              : f
-          )
-        )
-        
-        newFiles.push({
-          ...tempFile,
-          path: filePath,
-          isUploading: false
-        })
-      } catch (error: any) {
-        console.error('Error uploading file:', error)
-        
-        // Mark file with error
-        setUploadedFiles(prev => 
-          prev.map(f => 
-            f.id === id 
-              ? { ...f, isUploading: false, error: error.message || 'Upload failed' } 
-              : f
-          )
-        )
-      }
-    }
+    // Update state with new files
+    setUploadedFiles(prev => [...prev, ...newFiles])
   }
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -240,22 +162,8 @@ export default function DashboardPage() {
     handleFileSelect(e.dataTransfer.files)
   }
 
-  const removeFile = async (id: string, path?: string) => {
-    // If file has been uploaded to Supabase, remove it from storage
-    if (path) {
-      try {
-        const { error } = await supabase
-          .storage
-          .from('files')
-          .remove([path])
-        
-        if (error) throw error
-      } catch (error) {
-        console.error('Error removing file from storage:', error)
-      }
-    }
-    
-    // Remove from local state
+  const removeFile = (id: string) => {
+    // Only remove from local state
     setUploadedFiles(prev => prev.filter(file => file.id !== id))
   }
 
@@ -437,21 +345,14 @@ export default function DashboardPage() {
                             </p>
                           </div>
                         </div>
-                        {file.isUploading ? (
-                          <div className="flex items-center">
-                            <Loader2 className="w-4 h-4 animate-spin text-primary mr-2" />
-                            <span className="text-xs text-muted-foreground">Uploading...</span>
-                          </div>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeFile(file.id, file.path)}
-                            className="text-muted-foreground hover:text-foreground"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile(file.id)}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
                       </motion.div>
                     ))}
                   </div>
